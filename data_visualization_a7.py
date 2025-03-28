@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # Load dataset
-dataset = {
+data = {
     "Year": [1930, 1934, 1938, 1950, 1954, 1958, 1962, 1966, 1970, 1974, 1978,
              1982, 1986, 1990, 1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022],
     "Winner": ["Uruguay", "Italy", "Italy", "Uruguay", "Germany", "Brazil", "Brazil", "England", "Brazil",
@@ -16,7 +16,7 @@ dataset = {
                   "Germany", "Italy", "Netherlands", "Netherlands", "Germany", "Germany", "Argentina",
                   "Italy", "Brazil", "Germany", "France", "Netherlands", "Argentina", "Croatia", "France"]
 }
-df = pd.DataFrame(dataset)
+df = pd.DataFrame(data)
 
 # Count number of wins per country 
 win_counts = df["Winner"].value_counts().reset_index()
@@ -115,7 +115,7 @@ def update_map(selected_country, selected_year):
                 name="Runner-up",
                 showscale=False
             )
-            fig = go.Figure(dataset=[trace_winner, trace_runnerup])
+            fig = go.Figure(data=[trace_winner, trace_runnerup])
             fig.update_geos(scope="world")
             
             # Add a custom annotation acting as a legend for Winner/Runner-up,
