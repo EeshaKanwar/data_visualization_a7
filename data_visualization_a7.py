@@ -77,139 +77,89 @@ app.layout = html.Div([
      Input("year-dropdown", "value")]
 )
 def update_map(selected_country, selected_year):
-    # If a year is selected, show the match with discrete colors (deep purple for winner, grey for runner-up)
+    fig = go.Figure()
+
     if selected_year:
         match = df[df["Year"] == selected_year]
         if not match.empty:
             winner, runner_up = match.iloc[0][["Winner", "Runner-up"]]
-            # Map country names for Plotly recognition
-            winner_mapped = map_country(winner)
-            runner_up_mapped = map_country(runner_up)
-            # Get win counts (runner-ups may have 0 wins)
+            winner_mapped, runner_up_mapped = map_country(winner), map_country(runner_up)
             winner_wins = win_counts.loc[win_counts["Country"] == winner, "Wins"].values[0] if winner in win_counts["Country"].values else 0
             runner_up_wins = win_counts.loc[win_counts["Country"] == runner_up, "Wins"].values[0] if runner_up in win_counts["Country"].values else 0
-            
-            # Create a discrete trace for the winner (deep purple)
-            trace_winner = go.Choropleth(
-                locations=[winner_mapped],
-                locationmode="country names",
-                z=[1],  # Dummy value
-                text=[f"{winner} ({winner_wins} wins)"],
-                hoverinfo="text",
-                colorscale=[[0, "#6a0dad"], [1, "#6a0dad"]],  # Deep purple color for winner
-                marker_line_color="white",
-                name="Winner",
-                showscale=False
-            )
-            # Create a discrete trace for the runner-up (grey)
-            trace_runnerup = go.Choropleth(
-                locations=[runner_up_mapped],
-                locationmode="country names",
-                z=[1],  # Dummy value
-                text=[f"{runner_up} ({runner_up_wins} wins)"],
-                hoverinfo="text",
-                colorscale=[[0, "grey"], [1, "grey"]],
-                marker_line_color="white",
-                name="Runner-up",
-                showscale=False
-            )
-            fig = go.Figure(data=[trace_winner, trace_runnerup])
-            fig.update_geos(scope="world")
-            
-            # Add a custom annotation acting as a legend for Winner/Runner-up,
+
+            # Winner Trace (Deep Purple)
+            fig.add_trace(go.Choropleth(
+                locations=[winner_mapped], locationmode="country names",
+                z=[1], colorscale=[[0, "#6a0dad"], [1, "#6a0dad"]],
+                text=[f"{winner} ({winner_wins} wins)"], hoverinfo="text",
+                marker_line_color="white", name="Winner", showscale=False
+            ))
+
+            # Runner-up Trace (Grey)
+            fig.add_trace(go.Choropleth(
+                locations=[runner_up_mapped], locationmode="country names",
+                z=[1], colorscale=[[0, "grey"], [1, "grey"]],
+                text=[f"{runner_up} ({runner_up_wins} wins)"], hoverinfo="text",
+                marker_line_color="white", name="Runner-up", showscale=False
+            ))
+
+            # **Legend for Winner & Runner-up**
             fig.add_annotation(
                 x=0.95, y=0.7, xref="paper", yref="paper",
                 text=("<b>Legend</b><br>"
                       "<span style='color:#6a0dad;'>&#9632;</span> Winner<br>"
                       "<span style='color:grey;'>&#9632;</span> Runner-up"),
-                showarrow=False,
-                align="left",
-                bordercolor="black",
-                borderwidth=1,
-                bgcolor="rgba(255,255,255,0.7)",
-                font=dict(size=12)
+                showarrow=False, align="left",
+                bordercolor="black", borderwidth=1,
+                bgcolor="rgba(255,255,255,0.7)", font=dict(size=12)
             )
-        else:
-            fig = go.Figure()
-    
-    # If a country is selected (but no year), display the number of wins on the map for that country
+
     elif selected_country != "All winners":
         filtered_data = win_counts[win_counts["Country"] == selected_country].copy()
-        filtered_data["Result"] = "Winner"
         filtered_data["MappedCountry"] = filtered_data["Country"].apply(map_country)
+
         fig = px.choropleth(
-            filtered_data,
-            locations="MappedCountry",
-            locationmode="country names",
-            color="Wins",
-            hover_data={"Country": True, "Wins": True},
-            scope="world",
-            color_continuous_scale="Viridis"  # Apply a color scale here
+            filtered_data, locations="MappedCountry", locationmode="country names",
+            color="Wins", hover_data={"Country": True, "Wins": True},
+            scope="world", color_continuous_scale="Viridis"
         )
 
-        # Adding scattergeo for displaying number of wins only for the selected country
-        scatter_data = filtered_data.copy()
-        scatter_data["MappedCountry"] = scatter_data["Country"].apply(map_country)
+        # **Overlay Numbers on Selected Country**
         fig.add_trace(go.Scattergeo(
-            locations=scatter_data["MappedCountry"],
+            locations=filtered_data["MappedCountry"],
             locationmode="country names",
-            text=scatter_data["Wins"].astype(str),
-            mode="text",
-            showlegend=False,
-            textfont=dict(size=10, color="black"),
+            text=filtered_data["Wins"].astype(str),
+            mode="text", showlegend=False,
+            textfont=dict(size=12, color="black"),
             hoverinfo="none",
         ))
-    
-    # Default view: show all winners with colors based on number of wins and numbers on the map
+
     elif selected_country == "All winners":
         filtered_data = win_counts.copy()
-        filtered_data["Result"] = "Winner"
         filtered_data["MappedCountry"] = filtered_data["Country"].apply(map_country)
+
         fig = px.choropleth(
-            filtered_data,
-            locations="MappedCountry",
-            locationmode="country names",
-            color="Wins",
-            hover_data={"Country": True, "Wins": True},
-            scope="world",
-            color_continuous_scale="Viridis"  # Apply a color scale here
+            filtered_data, locations="MappedCountry", locationmode="country names",
+            color="Wins", hover_data={"Country": True, "Wins": True},
+            scope="world", color_continuous_scale="Viridis",
+            range_color=[filtered_data["Wins"].min(), filtered_data["Wins"].max()]
         )
 
-        # Adding scattergeo for displaying number of wins for all countries
-        scatter_data = filtered_data.copy()
-        scatter_data["MappedCountry"] = scatter_data["Country"].apply(map_country)
+        # **Overlay Numbers for All Countries**
         fig.add_trace(go.Scattergeo(
-            locations=scatter_data["MappedCountry"],
+            locations=filtered_data["MappedCountry"],
             locationmode="country names",
-            text=scatter_data["Wins"].astype(str),
-            mode="text",
-            showlegend=False,
-            textfont=dict(size=10, color="black"),
+            text=filtered_data["Wins"].astype(str),
+            mode="text", showlegend=False,
+            textfont=dict(size=12, color="black"),
             hoverinfo="none",
         ))
-    
-    # Update layout properties for consistent sizing and margins
+
     fig.update_layout(
-        height=800,
-        margin={"r": 0, "t": 50, "l": 0, "b": 0}
+        height=800, margin={"r": 0, "t": 50, "l": 0, "b": 0},
+        geo=dict(showcoastlines=True, projection_type="natural earth")
     )
-    
-    # Ensure fixed legend for non-year views (if needed)
-    fig.update_layout(
-        legend=dict(
-            itemsizing='constant',
-            title="Result",
-            traceorder="normal",
-            font=dict(size=12),
-            orientation="v",
-            x=0.2,
-            y=0.5,
-            bgcolor="rgba(255, 255, 255, 0.7)",
-            bordercolor="black",
-            borderwidth=1
-        )
-    )
-    
+
     return fig
 
 # Callback to display the win count
