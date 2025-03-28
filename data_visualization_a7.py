@@ -35,23 +35,22 @@ app = dash.Dash()
 server = app.server
 app.layout = html.Div([
     html.H1("FIFA World Cup Winners Dashboard", style={"text-align": "center"}),
-    # Country Dropdown Section:
+    
+    # Country Dropdown
     html.Div([
         html.Label("Select a country:"),
         dcc.Dropdown(
             id="country-dropdown",
             options=[{"label": "All winners", "value": "All winners"}] +
                     [{"label": c, "value": c} for c in win_counts["Country"].unique()],
-            value="All winners",  # Default to "All winners"
-            placeholder="Select a country",
+            value="All winners",
             style={"width": "250px", "margin": "0 auto"}
         ),
     ], style={"text-align": "center"}),
     
-    # Div to display the number of wins for a selected country
     html.Div(id="win-output"),
 
-    # Year Dropdown Section:
+    # Year Dropdown
     html.Div([
         html.Label("Select a year:"),
         dcc.Dropdown(
@@ -62,10 +61,9 @@ app.layout = html.Div([
         ),
     ], style={"text-align": "center"}),
 
-    # Div to display the match result for a selected year
     html.Div(id="match-output"),
     
-    # Displaying Graph
+    # Choropleth Map
     dcc.Graph(
         id="choropleth-map",
         config={"displayModeBar": False},
@@ -79,7 +77,7 @@ app.layout = html.Div([
      Input("year-dropdown", "value")]
 )
 def update_map(selected_country, selected_year):
-    # If a year is selected, show the match with discrete colors (navy for winner, grey for runner-up)
+    # If a year is selected, show the match with discrete colors (deep purple for winner, grey for runner-up)
     if selected_year:
         match = df[df["Year"] == selected_year]
         if not match.empty:
@@ -91,14 +89,14 @@ def update_map(selected_country, selected_year):
             winner_wins = win_counts.loc[win_counts["Country"] == winner, "Wins"].values[0] if winner in win_counts["Country"].values else 0
             runner_up_wins = win_counts.loc[win_counts["Country"] == runner_up, "Wins"].values[0] if runner_up in win_counts["Country"].values else 0
             
-            # Create a discrete trace for the winner (navy blue)
+            # Create a discrete trace for the winner (deep purple)
             trace_winner = go.Choropleth(
                 locations=[winner_mapped],
                 locationmode="country names",
                 z=[1],  # Dummy value
                 text=[f"{winner} ({winner_wins} wins)"],
                 hoverinfo="text",
-                colorscale=[[0, "navy"], [1, "navy"]],
+                colorscale=[[0, "#6a0dad"], [1, "#6a0dad"]],  # Deep purple color for winner
                 marker_line_color="white",
                 name="Winner",
                 showscale=False
@@ -122,7 +120,7 @@ def update_map(selected_country, selected_year):
             fig.add_annotation(
                 x=0.95, y=0.7, xref="paper", yref="paper",
                 text=("<b>Legend</b><br>"
-                      "<span style='color:navy;'>&#9632;</span> Winner<br>"
+                      "<span style='color:#6a0dad;'>&#9632;</span> Winner<br>"
                       "<span style='color:grey;'>&#9632;</span> Runner-up"),
                 showarrow=False,
                 align="left",
@@ -146,6 +144,7 @@ def update_map(selected_country, selected_year):
             color="Wins",
             hover_data={"Country": True, "Wins": True},
             scope="world",
+            color_continuous_scale="Viridis"  # Apply a color scale here
         )
 
         # Adding scattergeo for displaying number of wins only for the selected country
@@ -173,6 +172,7 @@ def update_map(selected_country, selected_year):
             color="Wins",
             hover_data={"Country": True, "Wins": True},
             scope="world",
+            color_continuous_scale="Viridis"  # Apply a color scale here
         )
 
         # Adding scattergeo for displaying number of wins for all countries
@@ -212,21 +212,18 @@ def update_map(selected_country, selected_year):
     
     return fig
 
-
-# Callback to display the win count for the selected country
+# Callback to display the win count
 @app.callback(
     Output("win-output", "children"),
     Input("country-dropdown", "value")
 )
 def display_wins(selected_country):
-    if selected_country == "All winners":
-        return ""
-    if not selected_country:
+    if selected_country == "All winners" or not selected_country:
         return ""
     wins = win_counts.loc[win_counts["Country"] == selected_country, "Wins"].values
     return f"{selected_country} has won the World Cup {wins[0]} times." if len(wins) > 0 else f"{selected_country} has never won the World Cup."
 
-# Callback to display the match result (winner and runner-up) for the selected year
+# Callback to display match results
 @app.callback(
     Output("match-output", "children"),
     Input("year-dropdown", "value")
@@ -240,7 +237,7 @@ def display_match(selected_year):
         return f"In {selected_year}, {winner} won the World Cup, and {runner_up} was the runner-up."
     return "No data available for the selected year."
 
-# Callback to disable year-dropdown if a country is selected
+# Callback to disable year-dropdown when a country is selected
 @app.callback(
     Output("year-dropdown", "disabled"),
     Input("country-dropdown", "value")
@@ -248,7 +245,7 @@ def display_match(selected_year):
 def disable_year_dropdown(selected_country):
     return False if selected_country is None else True
 
-# Callback to disable country-dropdown if a year is selected
+# Callback to disable country-dropdown when a year is selected
 @app.callback(
     Output("country-dropdown", "disabled"),
     Input("year-dropdown", "value")
@@ -258,10 +255,3 @@ def disable_country_dropdown(selected_year):
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=8090)
-
-
-# In[ ]:
-
-
-
-
