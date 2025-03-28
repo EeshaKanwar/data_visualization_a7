@@ -117,12 +117,17 @@ def update_map(selected_country, selected_year):
     elif selected_country != "All winners":
         filtered_data = win_counts[win_counts["Country"] == selected_country].copy()
         filtered_data["MappedCountry"] = filtered_data["Country"].apply(map_country)
+        
+        # **Fix: Ensure z has a numeric value (even for single selections)**
+        filtered_data["Wins"] = filtered_data["Wins"].astype(float)  
 
-        fig = px.choropleth(
-            filtered_data, locations="MappedCountry", locationmode="country names",
-            color="Wins", hover_data={"Country": True, "Wins": True},
-            scope="world", color_continuous_scale="Viridis"
-        )
+        fig.add_trace(go.Choropleth(
+            locations=filtered_data["MappedCountry"], locationmode="country names",
+            z=filtered_data["Wins"], colorscale="Viridis",
+            text=filtered_data.apply(lambda row: f"{row['Country']} ({row['Wins']} wins)", axis=1),
+            hoverinfo="text",
+            marker_line_color="white", name="Wins"
+        ))
 
         # **Overlay Numbers on Selected Country**
         fig.add_trace(go.Scattergeo(
@@ -138,12 +143,13 @@ def update_map(selected_country, selected_year):
         filtered_data = win_counts.copy()
         filtered_data["MappedCountry"] = filtered_data["Country"].apply(map_country)
 
-        fig = px.choropleth(
-            filtered_data, locations="MappedCountry", locationmode="country names",
-            color="Wins", hover_data={"Country": True, "Wins": True},
-            scope="world", color_continuous_scale="Viridis",
-            range_color=[filtered_data["Wins"].min(), filtered_data["Wins"].max()]
-        )
+        fig.add_trace(go.Choropleth(
+            locations=filtered_data["MappedCountry"], locationmode="country names",
+            z=filtered_data["Wins"], colorscale="Viridis",
+            text=filtered_data.apply(lambda row: f"{row['Country']} ({row['Wins']} wins)", axis=1),
+            hoverinfo="text",
+            marker_line_color="white", name="Wins"
+        ))
 
         # **Overlay Numbers for All Countries**
         fig.add_trace(go.Scattergeo(
@@ -161,6 +167,7 @@ def update_map(selected_country, selected_year):
     )
 
     return fig
+
 
 # Callback to display the win count
 @app.callback(
